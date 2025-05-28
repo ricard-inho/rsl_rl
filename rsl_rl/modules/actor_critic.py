@@ -125,7 +125,7 @@ class ActorCritic(nn.Module):
 
     def update_distribution(self, observations):
         # compute mean
-        mean = self.actor(observations[:-1], observations[-1]) 
+        mean = self.actor(observations)
         if self.clip_actions:
             mean = self.clipping_layer(mean)
 
@@ -161,7 +161,7 @@ class ActorCritic(nn.Module):
             return self.distribution.log_prob(actions).sum(dim=-1)
 
     def act_inference(self, observations):
-        mode= self.actor(observations[:-1], observations[-1])
+        mode= self.actor(observations)
         if self.clip_actions:
             # Apply tanh to clip the actions to [-1, 1]
             mode = self.clipping_layer(mode)
