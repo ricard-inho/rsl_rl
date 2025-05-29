@@ -131,7 +131,7 @@ class ActorCriticMemory(nn.Module):
 
     def update_distribution(self, observations):
         # compute mean
-        mean = self.actor(observations, observations[:, -4:].unsqueeze(-1)) # TODO: Handle dynamic observations
+        mean = self.actor(observations, observations[:, -4:]) # TODO: Handle dynamic observations. note: if tasks == 1, needs unsqueeze(-1)
         if self.clip_actions:
             mean = self.clipping_layer(mean)
 
@@ -167,7 +167,7 @@ class ActorCriticMemory(nn.Module):
             return self.distribution.log_prob(actions).sum(dim=-1)
 
     def act_inference(self, observations):
-        mode= self.actor(observations, observations[:, -4:].unsqueeze(-1))
+        mode= self.actor(observations, observations[:, -4:])
         if self.clip_actions:
             # Apply tanh to clip the actions to [-1, 1]
             mode = self.clipping_layer(mode)
