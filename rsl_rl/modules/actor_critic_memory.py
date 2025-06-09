@@ -35,7 +35,7 @@ class ActorCriticMemory(nn.Module):
     ):
         if kwargs:
             print(
-                "ActorCritic.__init__ got unexpected arguments, which will be ignored: "
+                "ActorCriticMemory.__init__ got unexpected arguments, which will be ignored: "
                 + str([key for key in kwargs.keys()])
             )
         super().__init__()
@@ -202,4 +202,4 @@ class ActorCriticMemory(nn.Module):
     @staticmethod
     def inverse_tanh(y):
         eps = torch.finfo(y.dtype).eps
-        return ActorCritic.atanh(y.clamp(min=-1.0 + eps, max=1.0 - eps))
+        return ActorCriticMemory.atanh(y.clamp(min=-1.0 + eps, max=1.0 - eps))
