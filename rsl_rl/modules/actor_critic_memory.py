@@ -31,6 +31,7 @@ class ActorCriticMemory(nn.Module):
         embeddings_size=64,
         generator_size=(256,256,256),
         num_memory_obs=64,
+        network_type:str="hybrid",
         **kwargs,
     ):
         if kwargs:
@@ -44,18 +45,32 @@ class ActorCriticMemory(nn.Module):
         mlp_input_dim_a = num_actor_obs
         mlp_input_dim_c = num_critic_obs
         # Policy
-        self.actor = HybridMemoryActorNetwork(
-            num_actor_obs,
-            num_memory_obs,
-            num_actions,
-            actor_hidden_dims=actor_hidden_dims,
-            use_embeddings=use_embeddings,
-            embeddings_size=embeddings_size,
-            generator_size=generator_size,
-            activation=activation,
-            device="cuda",
-            dtype=torch.float32,
-        )
+        if network_type == "hybrid":
+            self.actor = HybridMemoryActorNetwork(
+                num_actor_obs,
+                num_memory_obs,
+                num_actions,
+                actor_hidden_dims=actor_hidden_dims,
+                use_embeddings=use_embeddings,
+                embeddings_size=embeddings_size,
+                generator_size=generator_size,
+                activation=activation,
+                device="cuda",
+                dtype=torch.float32,
+            )
+        elif network_type == "pure":
+            self.actor = PureMemoryActorNetwork(
+                num_actor_obs,
+                num_memory_obs,
+                num_actions,
+                actor_hidden_dims=actor_hidden_dims,
+                use_embeddings=use_embeddings,
+                embeddings_size=embeddings_size,
+                generator_size=generator_size,
+                activation=activation,
+                device="cuda",
+                dtype=torch.float32,
+            )
 
         self.clip_actions = clip_actions
         self.clip_actions_range = clip_actions_range

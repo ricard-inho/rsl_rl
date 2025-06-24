@@ -229,7 +229,7 @@ class HybridMemoryActorNetwork(torch.nn.Module):
         if isinstance(activation, str):
             activation = resolve_nn_activation(activation)
 
-        self.actor = []
+        self.actor = torch.nn.ModuleList()
         
         self.actor.append(HybridLinearModule(num_actor_obs,
                                         actor_hidden_dims[0],
@@ -295,7 +295,7 @@ class PureMemoryActorNetwork(torch.nn.Module):
         if isinstance(activation, str):
             activation = resolve_nn_activation(activation)
 
-        self.actor = []
+        self.actor = torch.nn.ModuleList()
         
         self.actor.append(PureLinearModule(num_actor_obs,
                                         actor_hidden_dims[0],
