@@ -37,19 +37,44 @@ class ActorCritic(nn.Module):
         super().__init__()
         activation = resolve_nn_activation(activation)
 
-        mlp_input_dim_a = num_actor_obs
+        self.input_dims = num_actor_obs
+        if isinstance(self.input_dims, dict):
+            # Create a dictionary of input layers
+            self.actor_input_layers = nn.ModuleDict()
+            for key, input_dim in self.input_dims.items():
+                self.actor_input_layers[key] = nn.Sequential(
+                    nn.Linear(input_dim, actor_hidden_dims[0]),
+                    activation,
+                )
+            mlp_input_dim_a = actor_hidden_dims[0] * len(self.input_dims)
+        else:
+            mlp_input_dim_a = num_actor_obs
+            self.actor_input_layers = nn.Sequential(
+                nn.Linear(mlp_input_dim_a, actor_hidden_dims[0]),
+                activation,
+            )
+
         mlp_input_dim_c = num_critic_obs
         # Policy
         actor_layers = []
-        actor_layers.append(nn.Linear(mlp_input_dim_a, actor_hidden_dims[0]))
-        actor_layers.append(activation)
-        for layer_index in range(len(actor_hidden_dims)):
-            if layer_index == len(actor_hidden_dims) - 1:
-                actor_layers.append(nn.Linear(actor_hidden_dims[layer_index], num_actions))
-            else:
-                actor_layers.append(nn.Linear(actor_hidden_dims[layer_index], actor_hidden_dims[layer_index + 1]))
+        if isinstance(self.input_dims, dict):
+            # The first layer is now part of the input layers, so we start from the second layer
+            for layer_index in range(1, len(actor_hidden_dims)):
+                actor_layers.append(nn.Linear(actor_hidden_dims[layer_index - 1], actor_hidden_dims[layer_index]))
                 actor_layers.append(activation)
-        self.actor = nn.Sequential(*actor_layers)
+            actor_layers.append(nn.Linear(actor_hidden_dims[-1], num_actions))
+        else:
+            actor_layers.append(nn.Linear(mlp_input_dim_a, actor_hidden_dims[0]))
+            actor_layers.append(activation)
+            for layer_index in range(len(actor_hidden_dims)):
+                if layer_index == len(actor_hidden_dims) - 1:
+                    actor_layers.append(nn.Linear(actor_hidden_dims[layer_index], num_actions))
+                else:
+                    actor_layers.append(
+                        nn.Linear(actor_hidden_dims[layer_index], actor_hidden_dims[layer_index + 1])
+                    )
+                    actor_layers.append(activation)
+        self.actor_body = nn.Sequential(*actor_layers)
 
         self.clip_actions = clip_actions
         self.clip_actions_range = clip_actions_range
@@ -68,7 +93,7 @@ class ActorCritic(nn.Module):
                 critic_layers.append(activation)
         self.critic = nn.Sequential(*critic_layers)
 
-        print(f"Actor MLP: {self.actor}")
+        print(f"Actor MLP: {self.actor_body}")
         print(f"Critic MLP: {self.critic}")
 
         # Action noise
@@ -98,6 +123,18 @@ class ActorCritic(nn.Module):
 
     def forward(self):
         raise NotImplementedError
+
+    def actor(self, observations):
+        if isinstance(self.input_dims, dict):
+            # Process each observation with its corresponding input layer
+            processed_obs = [self.actor_input_layers[key](observations[key]) for key in self.input_dims.keys()]
+            
+            # Concatenate the processed observations
+            obs = torch.cat(processed_obs, dim=-1)
+        else:
+            obs = observations
+
+        return self.actor_body(obs)
 
     @property
     def action_mean(self):
