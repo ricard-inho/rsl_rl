@@ -1,6 +1,7 @@
 import torch
 import math
 from rsl_rl.utils import resolve_nn_activation
+from torch.nn.utils.parametrizations import spectral_norm
 
 
 class HybridMemoryNetwork:
@@ -152,9 +153,11 @@ class HybridLinearModule(torch.nn.Linear):
                  activation: str = "elu",
                  device=None,
                  dtype=None,
-
         ) -> None:
         super().__init__(in_features, out_features, bias=bias, device=device, dtype=dtype)
+
+        # Apply spectral normalization to the weight parameter
+        spectral_norm(self)
 
         self.HMRH = HybridMemoryRetrieverHead(
             input_data_size=extra_features,
