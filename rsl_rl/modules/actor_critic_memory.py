@@ -10,7 +10,7 @@ import torch.nn as nn
 from torch.distributions import Normal
 
 from rsl_rl.utils import resolve_nn_activation
-from rsl_rl.modules.memory_network import HybridMemoryActorNetwork
+from rsl_rl.modules.memory_network import HybridMemoryActorNetwork, PureMemoryActorNetwork
 
 class ActorCriticMemory(nn.Module):
     is_recurrent = False
