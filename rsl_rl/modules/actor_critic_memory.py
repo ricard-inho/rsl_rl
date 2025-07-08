@@ -44,6 +44,8 @@ class ActorCriticMemory(nn.Module):
 
         mlp_input_dim_a = num_actor_obs
         mlp_input_dim_c = num_critic_obs
+
+        num_memory_obs = num_actor_obs #TODO: Delete thsi after debugging
         # Policy
         if network_type == "hybrid":
             self.actor = HybridMemoryActorNetwork(
@@ -146,7 +148,7 @@ class ActorCriticMemory(nn.Module):
 
     def update_distribution(self, observations):
         # compute mean
-        mean = self.actor(observations, observations[:, -4:]) # TODO: Handle dynamic observations. note: if tasks == 1, needs unsqueeze(-1)
+        mean = self.actor(observations["general_obs"], observations["track_obs"])
         if self.clip_actions:
             mean = self.clipping_layer(mean)
 
@@ -182,7 +184,7 @@ class ActorCriticMemory(nn.Module):
             return self.distribution.log_prob(actions).sum(dim=-1)
 
     def act_inference(self, observations):
-        mode= self.actor(observations, observations[:, -4:])
+        mode= self.actor(observations["general_obs"], observations["track_obs"])
         if self.clip_actions:
             # Apply tanh to clip the actions to [-1, 1]
             mode = self.clipping_layer(mode)

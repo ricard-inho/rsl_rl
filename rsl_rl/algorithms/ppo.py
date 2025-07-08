@@ -223,7 +223,10 @@ class PPO:
             # we start with 1 and increase it if we use symmetry augmentation
             num_aug = 1
             # original batch size
-            original_batch_size = obs_batch.shape[0]
+            if isinstance(obs_batch, dict):
+                original_batch_size = next(iter(obs_batch.values())).shape[0]
+            else:
+                original_batch_size = obs_batch.shape[0]
 
             # check if we should normalize advantages per mini batch
             if self.normalize_advantage_per_mini_batch:
@@ -242,7 +245,10 @@ class PPO:
                     obs=critic_obs_batch, actions=None, env=self.symmetry["_env"], obs_type="critic"
                 )
                 # compute number of augmentations per sample
-                num_aug = int(obs_batch.shape[0] / original_batch_size)
+                if isinstance(obs_batch, dict):
+                    num_aug = int(next(iter(obs_batch.values())).shape[0] / original_batch_size)
+                else:
+                    num_aug = int(obs_batch.shape[0] / original_batch_size)
                 # repeat the rest of the batch
                 # -- actor
                 old_actions_log_prob_batch = old_actions_log_prob_batch.repeat(num_aug, 1)
@@ -260,8 +266,14 @@ class PPO:
             value_batch = self.policy.evaluate(critic_obs_batch, masks=masks_batch, hidden_states=hid_states_batch[1])
             # -- entropy
             # we only keep the entropy of the first augmentation (the original one)
-            mu_batch = self.policy.action_mean[:original_batch_size]
-            actions_distributions_batch = self.policy.actions_distribution[:original_batch_size]
+            if isinstance(self.policy.action_mean, dict):
+                mu_batch = {k: v[:original_batch_size] for k, v in self.policy.action_mean.items()}
+                actions_distributions_batch = {
+                    k: v[:original_batch_size] for k, v in self.policy.actions_distribution.items()
+                }
+            else:
+                mu_batch = self.policy.action_mean[:original_batch_size]
+                actions_distributions_batch = self.policy.actions_distribution[:original_batch_size]
             entropy_batch = self.policy.entropy[:original_batch_size]
 
             # KL
