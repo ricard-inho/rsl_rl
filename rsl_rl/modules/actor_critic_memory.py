@@ -45,7 +45,6 @@ class ActorCriticMemory(nn.Module):
         mlp_input_dim_a = num_actor_obs
         mlp_input_dim_c = num_critic_obs
 
-        num_memory_obs = num_actor_obs #TODO: Delete thsi after debugging
         # Policy
         if network_type == "hybrid":
             self.actor = HybridMemoryActorNetwork(
