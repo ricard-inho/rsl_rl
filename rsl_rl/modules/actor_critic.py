@@ -140,7 +140,7 @@ class ActorCritic(nn.Module):
         self.distribution = Normal(mean, std)
 
     def act(self, observations, **kwargs):
-        self.update_distribution(observations)
+        self.update_distribution(observations["general_obs"])
         act = self.distribution.sample()
         if self.clip_actions:
             # Apply tanh to clip the actions to [-1, 1]
@@ -161,7 +161,7 @@ class ActorCritic(nn.Module):
             return self.distribution.log_prob(actions).sum(dim=-1)
 
     def act_inference(self, observations):
-        mode= self.actor(observations)
+        mode= self.actor(observations["general_obs"])
         if self.clip_actions:
             # Apply tanh to clip the actions to [-1, 1]
             mode = self.clipping_layer(mode)
