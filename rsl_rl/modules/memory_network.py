@@ -210,7 +210,7 @@
 #         # Explode the tuple of weights
 #         weight, bias = self.HMRH(extra_features)
 #         # Compute the Linear transformation
-#         return torch.bmm(weight, in_features.unsqueeze(-1)).squeeze() + bias
+#         return torch.bmm(weight, in_features.unsqueeze(-1)).squeeze(-1) + bias
 
 # class HybridMemoryActorNetwork(torch.nn.Module):
 #     def __init__(
@@ -607,7 +607,7 @@ class HybridLinearModule(torch.nn.Linear):
         weight = self.weight * weight_scaling + weight_offset
         bias = self.bias * bias_scaling + bias_offset
         # Compute the Linear transformation
-        return torch.bmm(weight, in_features.unsqueeze(-1)).squeeze() + bias
+        return torch.bmm(weight, in_features.unsqueeze(-1)).squeeze(-1) + bias
 
 class PureLinearModule(torch.nn.Module):
     def __init__(self, in_features: int,
@@ -639,7 +639,7 @@ class PureLinearModule(torch.nn.Module):
         # Explode the tuple of weights
         weight, bias = self.HMRH(extra_features)
         # Compute the Linear transformation
-        return torch.bmm(weight, in_features.unsqueeze(-1)).squeeze() + bias
+        return torch.bmm(weight, in_features.unsqueeze(-1)).squeeze(-1) + bias
 
 class HybridMemoryActorNetwork(torch.nn.Module):
     def __init__(
@@ -658,46 +658,71 @@ class HybridMemoryActorNetwork(torch.nn.Module):
     ):
         super().__init__()
         # Check if activation is a string or a callable
+        # if isinstance(activation, str):
+        #     activation = resolve_nn_activation(activation)
+
+        # self.actor = torch.nn.ModuleList()
+        
+        # self.actor.append(HybridLinearModule(num_actor_obs,
+        #                                 actor_hidden_dims[0],
+        #                                 num_memory_obs,
+        #                                 use_embeddings=use_embeddings,
+        #                                 embeddings_size=embeddings_size,
+        #                                 generator_size=generator_size,
+        #                                 bias=True,
+        #                                 activation=activation,
+        #                                 device=device,
+        #                                 dtype=dtype))
+        # self.actor.append(activation)
+        # for i in range(len(actor_hidden_dims)):
+        #     if i == len(actor_hidden_dims) - 1:
+        #         self.actor.append(HybridLinearModule(actor_hidden_dims[i],
+        #                                         num_actions,
+        #                                         num_memory_obs,
+        #                                         use_embeddings=use_embeddings,
+        #                                         embeddings_size=embeddings_size,
+        #                                         generator_size=generator_size,
+        #                                         bias=True,
+        #                                         activation=activation,
+        #                                         device=device,
+        #                                         dtype=dtype))
+        #     else:
+        #         self.actor.append(HybridLinearModule(actor_hidden_dims[i],
+        #                                         actor_hidden_dims[i + 1],
+        #                                         num_memory_obs,
+        #                                         use_embeddings=use_embeddings,
+        #                                         embeddings_size=embeddings_size,
+        #                                         generator_size=generator_size,
+        #                                         bias=True,
+        #                                         activation=activation,
+        #                                         device=device,
+        #                                         dtype=dtype))
+        #         self.actor.append(activation)
         if isinstance(activation, str):
             activation = resolve_nn_activation(activation)
 
         self.actor = torch.nn.ModuleList()
         
-        self.actor.append(HybridLinearModule(num_actor_obs,
-                                        actor_hidden_dims[0],
-                                        num_memory_obs,
-                                        use_embeddings=use_embeddings,
-                                        embeddings_size=embeddings_size,
-                                        generator_size=generator_size,
-                                        bias=True,
-                                        activation=activation,
-                                        device=device,
-                                        dtype=dtype))
+        # Input Layer (MLP)
+        self.actor.append(torch.nn.Linear(num_actor_obs, actor_hidden_dims[0]))
         self.actor.append(activation)
-        for i in range(len(actor_hidden_dims)):
-            if i == len(actor_hidden_dims) - 1:
-                self.actor.append(HybridLinearModule(actor_hidden_dims[i],
-                                                num_actions,
-                                                num_memory_obs,
-                                                use_embeddings=use_embeddings,
-                                                embeddings_size=embeddings_size,
-                                                generator_size=generator_size,
-                                                bias=True,
-                                                activation=activation,
-                                                device=device,
-                                                dtype=dtype))
-            else:
-                self.actor.append(HybridLinearModule(actor_hidden_dims[i],
-                                                actor_hidden_dims[i + 1],
-                                                num_memory_obs,
-                                                use_embeddings=use_embeddings,
-                                                embeddings_size=embeddings_size,
-                                                generator_size=generator_size,
-                                                bias=True,
-                                                activation=activation,
-                                                device=device,
-                                                dtype=dtype))
-                self.actor.append(activation)
+        
+        # Hidden Layers (MLP)
+        for i in range(len(actor_hidden_dims) - 1):
+            self.actor.append(torch.nn.Linear(actor_hidden_dims[i], actor_hidden_dims[i + 1]))
+            self.actor.append(activation)
+
+        # Output Layer (Hybrid)
+        self.actor.append(HybridLinearModule(actor_hidden_dims[-1],
+                                            num_actions,
+                                            num_memory_obs,
+                                            use_embeddings=use_embeddings,
+                                            embeddings_size=embeddings_size,
+                                            generator_size=generator_size,
+                                            bias=True,
+                                            activation=activation,
+                                            device=device,
+                                            dtype=dtype))
 
     def forward(self, x, memory_data):
         for act in self.actor:
