@@ -52,14 +52,14 @@ class RolloutStorage:
         self.actions_shape = actions_shape
 
         # Core
-        # Support dict observations (e.g., {"general_obs": shape1, "track_obs": shape2})
-        if isinstance(obs_shape, dict):
+        if isinstance(self.obs_shape, dict):
             self.observations = {
                 key: torch.zeros(num_transitions_per_env, num_envs, shape, device=self.device)
                 for key, shape in self.obs_shape.items()
             }
         else:
             self.observations = torch.zeros(num_transitions_per_env, num_envs, *obs_shape, device=self.device)
+
         if privileged_obs_shape is not None:
             self.privileged_observations = torch.zeros(
                 num_transitions_per_env, num_envs, *privileged_obs_shape, device=self.device
@@ -100,18 +100,14 @@ class RolloutStorage:
             raise OverflowError("Rollout buffer overflow! You should call clear() before adding new transitions.")
 
         # Core
-        # Support dict or tensor observations
         if isinstance(self.observations, dict):
-            for key in self.observations:
+            for key in self.observations.keys():
                 self.observations[key][self.step].copy_(transition.observations[key])
         else:
             self.observations[self.step].copy_(transition.observations)
+
         if self.privileged_observations is not None:
-            if isinstance(self.privileged_observations, dict):
-                for key in self.privileged_observations:
-                    self.privileged_observations[key][self.step].copy_(transition.privileged_observations[key])
-            else:
-                self.privileged_observations[self.step].copy_(transition.privileged_observations)
+            self.privileged_observations[self.step].copy_(transition.privileged_observations)
         self.actions[self.step].copy_(transition.actions)
         self.rewards[self.step].copy_(transition.rewards.view(-1, 1))
         self.dones[self.step].copy_(transition.dones.view(-1, 1))
@@ -212,7 +208,7 @@ class RolloutStorage:
             }
         else:
             observations = self.observations.flatten(0, 1)
-        
+
         if self.privileged_observations is not None:
             privileged_observations = self.privileged_observations.flatten(0, 1)
         else:
@@ -276,14 +272,14 @@ class RolloutStorage:
     def recurrent_mini_batch_generator(self, num_mini_batches, num_epochs=8):
         if self.training_type != "rl":
             raise ValueError("This function is only available for reinforcement learning training.")
-        
+
         if isinstance(self.observations, dict):
             padded_obs_trajectories = {}
             for key, tensor in self.observations.items():
                 padded_obs_trajectories[key], trajectory_masks = split_and_pad_trajectories(tensor, self.dones)
         else:
             padded_obs_trajectories, trajectory_masks = split_and_pad_trajectories(self.observations, self.dones)
-
+        
         if self.privileged_observations is not None:
             padded_privileged_obs_trajectories, _ = split_and_pad_trajectories(self.privileged_observations, self.dones)
         else:
@@ -317,6 +313,7 @@ class RolloutStorage:
                     obs_batch = {key: tensor[:, first_traj:last_traj] for key, tensor in padded_obs_trajectories.items()}
                 else:
                     obs_batch = padded_obs_trajectories[:, first_traj:last_traj]
+
                 privileged_obs_batch = padded_privileged_obs_trajectories[:, first_traj:last_traj]
 
                 if padded_rnd_state_trajectories is not None:

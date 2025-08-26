@@ -143,7 +143,10 @@ class PPO:
         self.transition.action_mean = self.policy.action_mean.detach()
         self.transition.actions_distribution = self.policy.actions_distribution.detach()
         # need to record obs and critic_obs before env.step()
-        self.transition.observations = obs
+        if isinstance(obs, dict):
+            self.transition.observations = {k: v.clone() for k, v in obs.items()}
+        else:
+            self.transition.observations = obs.clone()
         self.transition.privileged_observations = critic_obs
         return self.transition.actions
 

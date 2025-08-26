@@ -71,13 +71,16 @@ class OnPolicyRunner:
         if self.privileged_obs_type is not None:
             num_privileged_obs = extras["observations"][self.privileged_obs_type].shape[1]
         else:
-            num_privileged_obs = num_obs["general_obs"]
+            if isinstance(num_obs, dict):
+                num_privileged_obs = sum(num_obs.values())
+            else:
+                num_privileged_obs = num_obs
 
         # evaluate the policy class
         policy_class = eval(self.policy_cfg.pop("class_name"))
         policy: ActorCritic | ActorCriticBeta | ActorCriticMemory | ActorCriticRecurrent | StudentTeacher | StudentTeacherRecurrent = policy_class(
-            num_obs["general_obs"], num_privileged_obs, self.env.num_actions, **self.policy_cfg
-        ).to(self.device) #TODO: This num_obs["general_obs"] is a hack to get the general observation shape. Check ricard/dict_obs for dictionary observations.
+            num_obs, num_privileged_obs, self.env.num_actions, **self.policy_cfg
+        ).to(self.device)
 
         # resolve dimension of rnd gated state
         if "rnd_cfg" in self.alg_cfg and self.alg_cfg["rnd_cfg"] is not None:
@@ -177,10 +180,20 @@ class OnPolicyRunner:
 
         # start learning
         obs, extras = self.env.get_observations()
-        privileged_obs = extras["observations"]["policy"]["general_obs"]#.get(self.privileged_obs_type, obs)
-        for key, val in obs.items():
-            obs[key] = val.to(self.device)
+        if isinstance(obs, dict):
+            for key, val in obs.items():
+                obs[key] = val.to(self.device)
+        else:
+            obs = obs.to(self.device)
+        privileged_obs = extras["observations"].get(self.privileged_obs_type)
+        if privileged_obs is None:
+            if isinstance(obs, dict):
+                # privileged_obs = torch.cat(list(obs.values()), dim=-1)
+                privileged_obs = obs['policy']
+            else:
+                privileged_obs = obs
         privileged_obs = privileged_obs.to(self.device)
+
         self.train_mode()  # switch to train mode (for dropout for example)
 
         # Book keeping
@@ -217,18 +230,33 @@ class OnPolicyRunner:
                     # Step the environment
                     obs, rewards, dones, infos = self.env.step(actions.to(self.env.device))
                     # Move to device
-                    rewards, dones = (rewards.to(self.device), dones.to(self.device))
-                    for key, val in obs.items():
-                        obs[key] = val.to(self.device)
-                        # perform normalization
-                        obs[key] = self.obs_normalizer(val)
+                    if isinstance(obs, dict):
+                        for key, val in obs.items():
+                            obs[key] = val.to(self.device)
+                    else:
+                        obs = obs.to(self.device)
+                    rewards, dones = rewards.to(self.device), dones.to(self.device)
+                    # perform normalization
+                    if isinstance(obs, dict):
+                        if self.empirical_normalization:
+                            for key, val in obs.items():
+                                obs[key] = self.obs_normalizer[key](val)
+                        else:
+                            for key, val in obs.items():
+                                obs[key] = self.obs_normalizer(val)
+                    else:
+                        obs = self.obs_normalizer(obs)
 
                     if self.privileged_obs_type is not None:
                         privileged_obs = self.privileged_obs_normalizer(
                             infos["observations"][self.privileged_obs_type].to(self.device)
                         )
                     else:
-                        privileged_obs = obs['general_obs']
+                        if isinstance(obs, dict):
+                            # privileged_obs = torch.cat(list(obs.values()), dim=-1)
+                            privileged_obs = obs['policy']
+                        else:
+                            privileged_obs = obs
 
                     # process the step
                     self.alg.process_env_step(rewards, dones, infos)
@@ -472,7 +500,14 @@ class OnPolicyRunner:
         if self.cfg["empirical_normalization"]:
             if device is not None:
                 self.obs_normalizer.to(device)
-            policy = lambda x: self.alg.policy.act_inference(self.obs_normalizer(x))  # noqa: E731
+
+            def policy(obs, device=device):
+                if isinstance(obs, dict):
+                    for key, val in obs.items():
+                        obs[key] = self.obs_normalizer[key](val.to(device))
+                else:
+                    obs = self.obs_normalizer(obs.to(device))
+                return self.alg.policy.act_inference(obs)
         return policy
 
     def train_mode(self):
