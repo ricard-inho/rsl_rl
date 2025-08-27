@@ -1,7 +1,7 @@
 # RSL RL
 
-Fast and simple implementation of RL algorithms, designed to run fully on GPU.
-This code is an evolution of `rl-pytorch` provided with NVIDIA's Isaac GYM.
+A fast and simple implementation of RL algorithms, designed to run fully on GPU.
+This code is an evolution of `rl-pytorch` provided with NVIDIA's Isaac Gym.
 
 Environment repositories using the framework:
 
@@ -46,7 +46,7 @@ The package supports the following logging frameworks which can be configured th
 * Weights & Biases: https://wandb.ai/site
 * Neptune: https://docs.neptune.ai/
 
-For a demo configuration of PPO, please check the [dummy_config.yaml](config/dummy_config.yaml) file.
+For a demo configuration of PPO, please check the [example_config.yaml](config/example_config.yaml) file.
 
 
 ## Contribution Guidelines
