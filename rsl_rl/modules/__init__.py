@@ -7,6 +7,7 @@
 
 from .actor_critic import ActorCritic
 from .actor_critic_beta import ActorCriticBeta
+from .actor_critic_beta_memory import ActorCriticBetaMemory
 from .actor_critic_memory import ActorCriticMemory
 from .actor_critic_recurrent import ActorCriticRecurrent
 from .normalizer import EmpiricalNormalization
@@ -17,6 +18,7 @@ from .student_teacher_recurrent import StudentTeacherRecurrent
 __all__ = [
     "ActorCritic",
     "ActorCriticBeta",
+    "ActorCriticBetaMemory",
     "ActorCriticMemory",
     "ActorCriticRecurrent",
     "EmpiricalNormalization",

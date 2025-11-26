@@ -18,6 +18,7 @@ from rsl_rl.env import VecEnv
 from rsl_rl.modules import (
     ActorCritic,
     ActorCriticBeta,
+    ActorCriticBetaMemory,
     ActorCriticMemory,
     ActorCriticRecurrent,
     EmpiricalNormalization,
@@ -75,7 +76,7 @@ class OnPolicyRunner:
 
         # evaluate the policy class
         policy_class = eval(self.policy_cfg.pop("class_name"))
-        policy: ActorCritic | ActorCriticBeta | ActorCriticMemory | ActorCriticRecurrent | StudentTeacher | StudentTeacherRecurrent = policy_class(
+        policy: ActorCritic | ActorCriticBeta | ActorCriticBetaMemory | ActorCriticMemory | ActorCriticRecurrent | StudentTeacher | StudentTeacherRecurrent = policy_class(
             num_obs["general_obs"], num_privileged_obs, self.env.num_actions, **self.policy_cfg
         ).to(self.device) #TODO: This num_obs["general_obs"] is a hack to get the general observation shape. Check ricard/dict_obs for dictionary observations.
 
