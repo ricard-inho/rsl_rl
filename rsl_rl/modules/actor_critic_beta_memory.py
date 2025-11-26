@@ -87,6 +87,11 @@ class ActorCriticBetaMemory(nn.Module):
                 dtype=torch.float32,
             )
 
+        self.alpha = nn.Linear(num_actions, num_actions)
+        self.beta = nn.Linear(num_actions, num_actions)
+        self.alpha_activation = nn.Softplus()
+        self.beta_activation = nn.Softplus()
+
         self.clip_actions_range = clip_actions_range
 
         # Value function
