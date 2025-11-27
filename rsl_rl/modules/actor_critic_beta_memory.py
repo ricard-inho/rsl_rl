@@ -73,12 +73,37 @@ class ActorCriticBetaMemory(nn.Module):
                 device="cuda",
                 dtype=torch.float32,
             )
+
+            self.critic = HybridMemoryActorNetwork(
+                num_critic_obs,
+                num_critic_obs,  # Using the same number of memory observations for critic
+                1, # Single value output
+                actor_hidden_dims=critic_hidden_dims,
+                use_embeddings=use_embeddings,
+                embeddings_size=embeddings_size,
+                generator_size=generator_size,
+                activation=activation,
+                device="cuda",
+                dtype=torch.float32,
+            )
         elif network_type == "pure":
             self.actor = PureMemoryActorNetwork(
                 num_actor_obs,
                 num_memory_obs,
                 num_actions,
                 actor_hidden_dims=actor_hidden_dims,
+                use_embeddings=use_embeddings,
+                embeddings_size=embeddings_size,
+                generator_size=generator_size,
+                activation=activation,
+                device="cuda",
+                dtype=torch.float32,
+            )
+            self.critic = PureMemoryActorNetwork(
+                num_critic_obs,
+                num_critic_obs,  # Using the same number of memory observations for critic
+                1, # Single value output
+                actor_hidden_dims=critic_hidden_dims,
                 use_embeddings=use_embeddings,
                 embeddings_size=embeddings_size,
                 generator_size=generator_size,
@@ -105,21 +130,9 @@ class ActorCriticBetaMemory(nn.Module):
         #         critic_layers.append(nn.Linear(critic_hidden_dims[layer_index], critic_hidden_dims[layer_index + 1]))
         #         critic_layers.append(activation)
         # self.critic = nn.Sequential(*critic_layers)
-        self.critic = HybridMemoryActorNetwork(
-                num_critic_obs,
-                num_critic_obs,  # Using the same number of memory observations for critic
-                1, # Single value output
-                actor_hidden_dims=critic_hidden_dims,
-                use_embeddings=use_embeddings,
-                embeddings_size=embeddings_size,
-                generator_size=generator_size,
-                activation=activation,
-                device="cuda",
-                dtype=torch.float32,
-            )
 
-        print(f"Actor MLP: {self.actor}")
-        print(f"Critic MLP: {self.critic}")
+        print(f"Beta Actor MLP: {self.actor}")
+        print(f"Beta Critic MLP: {self.critic}")
 
         # Action distribution (populated in update_distribution)
         self.distribution = None
