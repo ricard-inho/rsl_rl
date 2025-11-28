@@ -180,7 +180,7 @@ class ActorCriticBetaMemory(nn.Module):
 
     def update_distribution(self, observations):
         # compute mean
-        latent = self.actor(observations["general_obs"], observations["task_obs"])
+        latent = self.actor(observations["general_obs"], observations["semantic_emb"])
         self.a = self.alpha_activation(self.alpha(latent)) + 1.0
         self.b = self.beta_activation(self.beta(latent)) + 1.0
 
@@ -201,7 +201,7 @@ class ActorCriticBetaMemory(nn.Module):
         return self.distribution.log_prob(unscaled_actions).sum(dim=-1)
 
     def act_inference(self, observations):
-        latent = self.actor(observations["general_obs"], observations["task_obs"])
+        latent = self.actor(observations["general_obs"], observations["semantic_emb"])
         self.a = self.alpha_activation(self.alpha(latent))
         self.b = self.beta_activation(self.beta(latent))
         mode = self.a / (self.a + self.b)
