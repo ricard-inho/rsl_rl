@@ -52,7 +52,7 @@ class RolloutStorage:
         self.actions_shape = actions_shape
 
         # Core
-        # Support dict observations (e.g., {"general_obs": shape1, "task_obs": shape2})
+        # Support dict observations (e.g., {"general_obs": shape1, "task_id_one_hot": shape2})
         if isinstance(obs_shape, dict):
             self.observations = {
                 key: torch.zeros(num_transitions_per_env, num_envs, shape, device=self.device)

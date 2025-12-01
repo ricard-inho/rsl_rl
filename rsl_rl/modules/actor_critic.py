@@ -187,7 +187,7 @@ class ActorCritic(nn.Module):
     def evaluate(self, critic_observations, **kwargs):
         # Determine the task ID for every sample in the batch
         # task_ids shape: (Batch_size,)
-        task_ids = critic_observations['task_obs'].argmax(dim=1)
+        task_ids = critic_observations['task_id_one_hot'].argmax(dim=1)
 
         # 2. Initialize the final value tensor
         # value shape: (Batch_size, 1)
