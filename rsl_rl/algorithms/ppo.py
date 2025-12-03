@@ -461,7 +461,7 @@ class PPO:
             # 2. Extract Task IDs
             # Assuming obs_batch is [batch, features] and last 'num_tasks' are one-hot
             # If augmentation happened, obs_batch is already expanded, so IDs align with ppo_loss_vec
-            task_one_hot = obs_batch["task_obs"] #obs_batch[:, -self.num_tasks:] 
+            task_one_hot = obs_batch["task_id_one_hot"] #obs_batch[:, -self.num_tasks:] 
             task_ids = task_one_hot.argmax(dim=1)
 
             # 3. Create List of Losses for PCGrad
