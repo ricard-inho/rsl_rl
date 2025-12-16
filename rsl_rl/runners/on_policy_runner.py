@@ -414,7 +414,7 @@ class OnPolicyRunner:
         # -- Save model
         saved_dict = {
             "model_state_dict": self.alg.policy.state_dict(),
-            "optimizer_state_dict": self.alg.optimizer.state_dict(),
+            "optimizer_state_dict": self.alg.optimizer._optim.state_dict(),
             "iter": self.current_learning_iteration,
             "infos": infos,
         }
@@ -456,7 +456,7 @@ class OnPolicyRunner:
         # -- load optimizer if used
         if load_optimizer and resumed_training:
             # -- algorithm optimizer
-            self.alg.optimizer.load_state_dict(loaded_dict["optimizer_state_dict"])
+            self.alg.optimizer._optim.load_state_dict(loaded_dict["optimizer_state_dict"])
             # -- RND optimizer if used
             if self.alg.rnd:
                 self.alg.rnd_optimizer.load_state_dict(loaded_dict["rnd_optimizer_state_dict"])
