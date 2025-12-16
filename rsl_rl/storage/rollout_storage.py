@@ -52,7 +52,7 @@ class RolloutStorage:
         self.actions_shape = actions_shape
 
         # Core
-        # Support dict observations (e.g., {"general_obs": shape1, "task_id_one_hot": shape2, "semantic_emb": shape3})
+        # Support dict observations (e.g., {"general_obs": shape1, "task_id_one_hot": shape2})
         if isinstance(obs_shape, dict):
             self.observations = {
                 key: torch.zeros(num_transitions_per_env, num_envs, shape, device=self.device)
@@ -60,12 +60,22 @@ class RolloutStorage:
             }
         else:
             self.observations = torch.zeros(num_transitions_per_env, num_envs, *obs_shape, device=self.device)
-        if privileged_obs_shape is not None:
+
+        if isinstance(privileged_obs_shape, dict):
+            self.privileged_observations = {
+                key: torch.zeros(num_transitions_per_env, num_envs, shape, device=self.device)
+                for key, shape in self.privileged_obs_shape.items()
+            }
+        else:
             self.privileged_observations = torch.zeros(
                 num_transitions_per_env, num_envs, *privileged_obs_shape, device=self.device
             )
-        else:
-            self.privileged_observations = None
+        # if privileged_obs_shape is not None:
+        #     self.privileged_observations = torch.zeros(
+        #         num_transitions_per_env, num_envs, *privileged_obs_shape, device=self.device
+        #     )
+        # else:
+        #     self.privileged_observations = None
         self.rewards = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
         self.actions = torch.zeros(num_transitions_per_env, num_envs, *actions_shape, device=self.device)
         self.dones = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device).byte()
@@ -214,7 +224,12 @@ class RolloutStorage:
             observations = self.observations.flatten(0, 1)
         
         if self.privileged_observations is not None:
-            privileged_observations = self.privileged_observations.flatten(0, 1)
+            if isinstance(self.privileged_observations, dict):
+                privileged_observations = {
+                    key: tensor.flatten(0, 1) for key, tensor in self.privileged_observations.items()
+                }
+            else:
+                privileged_observations = self.privileged_observations.flatten(0, 1)
         else:
             if isinstance(observations, dict):
                 privileged_observations = torch.cat(list(observations.values()), dim=-1)
@@ -249,7 +264,12 @@ class RolloutStorage:
                 else:
                     obs_batch = observations[batch_idx]
 
-                privileged_observations_batch = privileged_observations[batch_idx]
+                if isinstance(privileged_observations, dict):
+                    privileged_observations_batch = {
+                        key: tensor[batch_idx] for key, tensor in privileged_observations.items()
+                    }
+                else:
+                    privileged_observations_batch = privileged_observations[batch_idx]
                 actions_batch = actions[batch_idx]
 
                 # -- For PPO
@@ -285,7 +305,12 @@ class RolloutStorage:
             padded_obs_trajectories, trajectory_masks = split_and_pad_trajectories(self.observations, self.dones)
 
         if self.privileged_observations is not None:
-            padded_privileged_obs_trajectories, _ = split_and_pad_trajectories(self.privileged_observations, self.dones)
+            if isinstance(self.privileged_observations, dict):
+                padded_privileged_obs_trajectories = {}
+                for key, tensor in self.privileged_observations.items():
+                    padded_privileged_obs_trajectories[key], _ = split_and_pad_trajectories(tensor, self.dones)
+            else:
+                padded_privileged_obs_trajectories, _ = split_and_pad_trajectories(self.privileged_observations, self.dones)
         else:
             if isinstance(padded_obs_trajectories, dict):
                 # concatenate all tensors in the dict along the last dimension

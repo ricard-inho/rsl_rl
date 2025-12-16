@@ -72,12 +72,12 @@ class OnPolicyRunner:
         if self.privileged_obs_type is not None:
             num_privileged_obs = extras["observations"][self.privileged_obs_type].shape[1]
         else:
-            num_privileged_obs = num_obs["general_obs"]
+            num_privileged_obs = num_obs #num_obs["general_obs"]
 
         # evaluate the policy class
         policy_class = eval(self.policy_cfg.pop("class_name"))
         policy: ActorCritic | ActorCriticBeta | ActorCriticBetaMemory | ActorCriticMemory | ActorCriticRecurrent | StudentTeacher | StudentTeacherRecurrent = policy_class(
-            num_obs["general_obs"], num_privileged_obs, self.env.num_actions, **self.policy_cfg
+            num_obs["general_obs"], num_privileged_obs["general_obs"], self.env.num_actions, **self.policy_cfg
         ).to(self.device) #TODO: This num_obs["general_obs"] is a hack to get the general observation shape. Check ricard/dict_obs for dictionary observations.
 
         # resolve dimension of rnd gated state
@@ -122,12 +122,13 @@ class OnPolicyRunner:
 
         # init storage and model
         actor_obs_shape = [num_obs] if not isinstance(num_obs, dict) else num_obs
+        critic_obs_shape = [num_privileged_obs] if not isinstance(num_privileged_obs, dict) else num_privileged_obs
         self.alg.init_storage(
             self.training_type,
             self.env.num_envs,
             self.num_steps_per_env,
             actor_obs_shape,
-            [num_privileged_obs],
+            critic_obs_shape,
             [self.env.num_actions],
         )
 
@@ -178,10 +179,10 @@ class OnPolicyRunner:
 
         # start learning
         obs, extras = self.env.get_observations()
-        privileged_obs = extras["observations"]["policy"]["general_obs"]#.get(self.privileged_obs_type, obs)
+        privileged_obs = obs #extras["observations"]["policy"]["general_obs"]#.get(self.privileged_obs_type, obs)
         for key, val in obs.items():
             obs[key] = val.to(self.device)
-        privileged_obs = privileged_obs.to(self.device)
+            privileged_obs[key] = privileged_obs[key].to(self.device)
         self.train_mode()  # switch to train mode (for dropout for example)
 
         # Book keeping
@@ -229,7 +230,7 @@ class OnPolicyRunner:
                             infos["observations"][self.privileged_obs_type].to(self.device)
                         )
                     else:
-                        privileged_obs = obs['general_obs']
+                        privileged_obs = obs
 
                     # process the step
                     self.alg.process_env_step(rewards, dones, infos)
