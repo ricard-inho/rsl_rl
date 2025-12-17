@@ -162,9 +162,7 @@ class ActorCriticBetaMemory(nn.Module):
         # self.critic = nn.Sequential(*critic_layers)
 
         print(f"Beta Actor MLP: {self.actor}")
-        print(f"Beta Alpha Layer: {self.alpha}")
-        print(f"Beta Beta Layer: {self.beta}")
-        print(f"Multi Critic MLP: {self.critics_list}")
+        print(f"Beta Critic MLP: {self.critics_list}")
 
         # Action distribution (populated in update_distribution)
         self.distribution = None
@@ -233,8 +231,8 @@ class ActorCriticBetaMemory(nn.Module):
         return self.distribution.log_prob(unscaled_actions).sum(dim=-1)
 
     def act_inference(self, observations):
-        # latent = self.actor(observations["general_obs"], observations["semantic_emb"])
-        latent = self.actor(observations["general_obs"])
+        latent = self.actor(observations["general_obs"], observations["semantic_emb"])
+        # latent = self.actor(observations["general_obs"])
         self.a = self.alpha_activation(self.alpha(latent))
         self.b = self.beta_activation(self.beta(latent))
         mode = self.a / (self.a + self.b)
