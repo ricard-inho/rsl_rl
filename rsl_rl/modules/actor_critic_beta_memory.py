@@ -76,7 +76,7 @@ class ActorCriticBetaMemory(nn.Module):
 
             self.critic = HybridMemoryActorNetwork(
                 num_critic_obs,
-                num_critic_obs,  # Using the same number of memory observations for critic
+                num_memory_obs, 
                 1, # Single value output
                 actor_hidden_dims=critic_hidden_dims,
                 use_embeddings=use_embeddings,
@@ -101,7 +101,7 @@ class ActorCriticBetaMemory(nn.Module):
             )
             self.critic = PureMemoryActorNetwork(
                 num_critic_obs,
-                num_critic_obs,  # Using the same number of memory observations for critic
+                num_memory_obs, 
                 1, # Single value output
                 actor_hidden_dims=critic_hidden_dims,
                 use_embeddings=use_embeddings,
@@ -209,7 +209,7 @@ class ActorCriticBetaMemory(nn.Module):
         return mode_rescaled
 
     def evaluate(self, critic_observations, **kwargs):
-        value = self.critic(critic_observations, critic_observations)
+        value = self.critic(critic_observations["general_obs"], critic_observations["semantic_emb"])
         return value
 
     def load_state_dict(self, state_dict, strict=True):
