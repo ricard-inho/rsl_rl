@@ -74,18 +74,18 @@ class ActorCriticBetaMemory(nn.Module):
                 dtype=torch.float32,
             )
 
-            self.critic = HybridMemoryActorNetwork(
-                num_critic_obs,
-                num_memory_obs, 
-                1, # Single value output
-                actor_hidden_dims=critic_hidden_dims,
-                use_embeddings=use_embeddings,
-                embeddings_size=embeddings_size,
-                generator_size=generator_size,
-                activation=activation,
-                device="cuda",
-                dtype=torch.float32,
-            )
+            # Value function
+            critic_layers = []
+            critic_layers.append(nn.Linear(mlp_input_dim_c, critic_hidden_dims[0]))
+            critic_layers.append(activation)
+            for layer_index in range(len(critic_hidden_dims)):
+                if layer_index == len(critic_hidden_dims) - 1:
+                    critic_layers.append(nn.Linear(critic_hidden_dims[layer_index], 1))
+                else:
+                    critic_layers.append(nn.Linear(critic_hidden_dims[layer_index], critic_hidden_dims[layer_index + 1]))
+                    critic_layers.append(activation)
+            self.critic = nn.Sequential(*critic_layers)
+            
         elif network_type == "pure":
             self.actor = PureMemoryActorNetwork(
                 num_actor_obs,
@@ -209,7 +209,7 @@ class ActorCriticBetaMemory(nn.Module):
         return mode_rescaled
 
     def evaluate(self, critic_observations, **kwargs):
-        value = self.critic(critic_observations["general_obs"], critic_observations["semantic_emb"])
+        value = self.critic(critic_observations)
         return value
 
     def load_state_dict(self, state_dict, strict=True):
