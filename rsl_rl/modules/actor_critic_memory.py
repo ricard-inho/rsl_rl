@@ -91,7 +91,7 @@ class ActorCriticMemory(nn.Module):
         # self.critic = nn.Sequential(*critic_layers)
         self.critic = HybridMemoryActorNetwork(
                 num_critic_obs,
-                num_critic_obs,  # Using the same number of memory observations for critic
+                num_memory_obs,  # Using the same number of memory observations for critic
                 1, # Single value output
                 actor_hidden_dims=critic_hidden_dims,
                 use_embeddings=use_embeddings,
@@ -159,7 +159,7 @@ class ActorCriticMemory(nn.Module):
 
     def update_distribution(self, observations):
         # compute mean
-        mean = self.actor(observations["general_obs"], observations["track_obs"])
+        mean = self.actor(observations["general_obs"], observations["semantic_emb"])
         if self.clip_actions:
             mean = self.clipping_layer(mean)
 
@@ -195,7 +195,7 @@ class ActorCriticMemory(nn.Module):
             return self.distribution.log_prob(actions).sum(dim=-1)
 
     def act_inference(self, observations):
-        mode= self.actor(observations["general_obs"], observations["track_obs"])
+        mode= self.actor(observations["general_obs"], observations["semantic_emb"])
         if self.clip_actions:
             # Apply tanh to clip the actions to [-1, 1]
             mode = self.clipping_layer(mode)
@@ -204,7 +204,7 @@ class ActorCriticMemory(nn.Module):
         return mode
 
     def evaluate(self, critic_observations, **kwargs):
-        value = self.critic(critic_observations, critic_observations)
+        value = self.critic(critic_observations["general_obs"], critic_observations["semantic_emb"])
         return value
 
     def load_state_dict(self, state_dict, strict=True):
