@@ -170,7 +170,7 @@ class ActorCritic(nn.Module):
         return mode
 
     def evaluate(self, critic_observations, **kwargs):
-        value = self.critic(critic_observations)
+        value = self.critic(critic_observations["general_obs"])
         return value
 
     def load_state_dict(self, state_dict, strict=True):
